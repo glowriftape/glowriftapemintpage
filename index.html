@@ -207,11 +207,6 @@
             object-fit: cover;
         }
 
-        .nft-card.selected {
-            box-shadow: 0 0 15px #ffff00 !important;
-            transform: scale(0.95);
-        }
-
         .stamp {
             position: absolute;
             top: 50%;
@@ -236,6 +231,36 @@
             display: block;
             background: #ff0000;
             color: #ffffff;
+        }
+
+        /* Custom Token Input Field Style */
+        .burn-input-container {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .burn-input-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .burn-token-input {
+            width: 100%;
+            background: #111111;
+            border: 1px solid #333333 !important;
+            color: #ffffff;
+            padding: 12px;
+            font-size: 16px;
+            font-family: monospace;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .burn-token-input:focus {
+            border-color: #ffff00 !important;
         }
 
         .loading-container {
@@ -376,11 +401,15 @@
         <div id="burnTab" class="view-panel">
             <h2 class="rainbow-text">BURN ASSETS</h2>
             <div class="stats-box">
-                <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">SELECT THE NFTS YOU WANT TO BURN</div>
-                <div id="burnCountDisplay" style="font-size: 16px; color: #ffff00; font-weight: bold; margin-bottom: 15px;">Selected: 0</div>
-                <button id="burnActionButton" class="action-btn rainbow-bg" onclick="executeBurn()">BURN SELECTED</button>
+                <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">ENTER THE TOKEN IDS YOU WANT TO BURN</div>
+                
+                <div class="burn-input-container">
+                    <label class="burn-input-label" for="burnTokenIds">Token ID (Separate multiple IDs with commas)</label>
+                    <input type="text" id="burnTokenIds" class="burn-token-input" placeholder="e.g. 5 or 12, 24, 88">
+                </div>
+
+                <button id="burnActionButton" class="action-btn rainbow-bg" onclick="executeBurn()">BURN NOW</button>
             </div>
-            <div id="burnGallery" class="gallery-grid"></div>
         </div>
 
         <div id="gyapeTab" class="view-panel">
@@ -440,7 +469,7 @@
         const TOTAL_COLLECTION_SIZE = 10000;
         const GITHUB_IMG_BASE = "https://raw.githubusercontent.com/glowriftape/glowriftapeimage/main/images/";
 
-        // COMPLETE CONTRACT ABI INTEGRATION FROM ABI (4).TXT
+        // COMPLETE CONTRACT ABI INTEGRATION FROM CURRENT UPDATE
         const CONTRACT_ABI = [
             {"inputs":[{"internalType":"string","name":"initialBaseURI","type":"string"},{"internalType":"string","name":"initialContractURI","type":"string"}],"stateMutability":"nonpayable","type":"constructor"},
             {"inputs":[],"name":"ApprovalCallerNotOwnerNorApproved","type":"error"},
@@ -450,49 +479,70 @@
             {"inputs":[],"name":"InsufficientPaymentReceived","type":"error"},
             {"inputs":[],"name":"MarketplaceTradingLocked","type":"error"},
             {"inputs":[],"name":"MintERC2309QuantityExceedsLimit","type":"error"},
-            {"inputs":[],"name":"MintHasConcluded","type":"error"},
-            {"inputs":[],"name":"MintNotActive","type":"error"},
-            {"inputs":[],"name":"MintQuantityLimitExceeded","type":"error"},
+            {"inputs":[],"name":"MintStatusPaused","type":"error"},
+            {"inputs":[],"name":"MintToZeroAddress","type":"error"},
+            {"inputs":[],"name":"MintZeroQuantity","type":"error"},
+            {"inputs":[],"name":"NativeTransferExecutionFailed","type":"error"},
+            {"inputs":[],"name":"NotCompatibleWithSpotMints","type":"error"},
+            {"inputs":[],"name":"OwnableInvalidOwner","type":"error"},
+            {"inputs":[],"name":"OwnableUnauthorizedAccount","type":"error"},
             {"inputs":[],"name":"OwnerQueryForNonexistentToken","type":"error"},
-            {"inputs":[],"name":"OwnershipNotInitialized","type":"error"},
+            {"inputs":[],"name":"OwnershipNotInitializedForExtraData","type":"error"},
+            {"inputs":[],"name":"SequentialMintExceedsLimit","type":"error"},
+            {"inputs":[],"name":"SequentialUpToTooSmall","type":"error"},
+            {"inputs":[],"name":"SpotMintTokenIdTooSmall","type":"error"},
+            {"inputs":[],"name":"SupplyCapReached","type":"error"},
+            {"inputs":[],"name":"TokenAlreadyExists","type":"error"},
+            {"inputs":[],"name":"TokenQueryNonexistent","type":"error"},
+            {"inputs":[],"name":"TransactionPaused","type":"error"},
             {"inputs":[],"name":"TransferCallerNotOwnerNorApproved","type":"error"},
             {"inputs":[],"name":"TransferFromIncorrectOwner","type":"error"},
             {"inputs":[],"name":"TransferToNonERC721ReceiverImplementer","type":"error"},
             {"inputs":[],"name":"TransferToZeroAddress","type":"error"},
+            {"inputs":[],"name":"URIQueryForNonexistentToken","type":"error"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"string","name":"burnReason","type":"string"}],"name":"AssetBurned","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"newBaseURI","type":"string"}],"name":"BaseURIUpdated","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"fromTokenId","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"toTokenId","type":"uint256"},{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"ConsecutiveTransfer","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"newContractURI","type":"string"}],"name":"ContractURIUpdated","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"bool","name":"state","type":"bool"}],"name":"MintStatusUpdated","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"bool","name":"state","type":"bool"}],"name":"SystemPauseUpdated","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"bool","name":"state","type":"bool"}],"name":"TradingStatusUpdated","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},
+            {"inputs":[],"name":"FREE_STAGE_END","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"MINT_PRICE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approve","outputs":[],"stateMutability":"payable","type":"function"},
             {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"string","name":"reason","type":"string"}],"name":"burn","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"burn","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"contractURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"_user","type":"address"}],"name":"hasClaimedFree","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"hasClaimedFree","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"operator","type":"address"}],"name":"isApprovedForAll","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"isMarketplaceLocked","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"isMintActive","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"quantity","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
+            {"inputs":[],"name":"mintActive","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"paused","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"payable","type":"function"},
             {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"payable","type":"function"},
             {"inputs":[{"internalType":"address","name":"operator","type":"address"},{"internalType":"bool","name":"approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"string","name":"newBaseURI","type":"string"}],"name":"setBaseURI","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"string","name":"newContractURI","type":"string"}],"name":"setContractURI","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"bool","name":"_locked","type":"bool"}],"name":"setMarketplaceLock","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"bytes4","name":"interfaceId","type":"bytes4"}],"name":"supportsInterface","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"bool","name":"_state","type":"bool"}],"name":"togglePause","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"result","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"tradingActive","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"payable","type":"function"},
             {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"bool","name":"_state","type":"bool"}],"name":"updateMintStatus","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"withdrawAll","outputs":[],"stateMutability":"nonpayable","type":"function"}
+            {"inputs":[{"internalType":"bool","name":"_state","type":"bool"}],"name":"updateTradingStatus","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
 
         // --- Core Application State Variables ---
@@ -500,7 +550,6 @@
         let contractWithSigner = null;
         let userWalletAddress = null;
         let currentMintQuantity = 1;
-        let selectedNftsToBurn = [];
 
         // --- Initialization and LocalStorage Sync ---
         window.addEventListener('load', async () => {
@@ -579,9 +628,6 @@
                         logContainer.innerHTML = logText + "<br>" + logContainer.innerHTML;
                     }
                     synchronizeLiveChainData();
-                    if (document.getElementById("burnTab").classList.contains("active")) {
-                        loadUserOwnedNftsForBurning();
-                    }
                 });
             } catch (err) {
                 console.error("Live listener connection failed:", err);
@@ -595,10 +641,6 @@
             
             document.getElementById(`${tabId}Tab`).classList.add('active');
             element.classList.add('active');
-            
-            if (tabId === 'burn') {
-                loadUserOwnedNftsForBurning();
-            }
         }
 
         function updateQuantity(val) {
@@ -671,84 +713,6 @@
             }
         }
 
-        // --- On-Chain Event Logs Scraper Mechanics ---
-        async function loadUserOwnedNftsForBurning() {
-            const burnGallery = document.getElementById("burnGallery");
-            burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ffff00;">SCANNING ON-CHAIN OWNERSHIP DATA...</div>`;
-            selectedNftsToBurn = [];
-            document.getElementById("burnCountDisplay").innerText = "Selected: 0";
-
-            if (!userWalletAddress || !contractWithSigner) {
-                burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ff0000;">CONNECT YOUR WALLET TO ACTIVE IMPLEMENTATION</div>`;
-                return;
-            }
-
-            try {
-                const rpcProvider = new ethers.JsonRpcProvider(ALCHEMY_URL);
-                const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
-
-                // Fetch Transfer logs where the current user is the recipient ('to')
-                const filterToUser = readContract.filters.Transfer(null, userWalletAddress);
-                const incomingLogs = await readContract.queryFilter(filterToUser);
-
-                let suspectedTokenIds = new Set();
-                incomingLogs.forEach(log => {
-                    if (log.args && log.args.tokenId) {
-                        suspectedTokenIds.add(Number(log.args.tokenId));
-                    }
-                });
-
-                let ownedIds = [];
-                // Double-check absolute current ownership for targeted token IDs only
-                const targetIds = Array.from(suspectedTokenIds);
-                for (let id of targetIds) {
-                    try {
-                        const currentOwner = await readContract.ownerOf(id);
-                        if (currentOwner.toLowerCase() === userWalletAddress.toLowerCase()) {
-                            ownedIds.push(id);
-                        }
-                    } catch (e) {
-                        // Suppress burnt or non-existent tokens cleanly
-                    }
-                }
-
-                if (ownedIds.length === 0) {
-                    burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#888;">NO WALLET ASSETS AVAILABLE FOR BURNING ACTIONS</div>`;
-                    return;
-                }
-
-                burnGallery.innerHTML = "";
-                ownedIds.sort((a, b) => a - b).forEach(id => {
-                    const card = document.createElement("div");
-                    card.className = "nft-card";
-                    
-                    const img = document.createElement("img");
-                    img.src = `${GITHUB_IMG_BASE}${id}.webp`;
-                    img.loading = "lazy";
-
-                    card.appendChild(img);
-                    card.onclick = () => toggleSelectForBurn(card, id);
-                    burnGallery.appendChild(card);
-                });
-
-            } catch (err) {
-                console.error("On-chain log scraping architecture failed:", err);
-                burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ff0000;">ERROR FETCHING ASSETS FROM LOGS. PLEASE RETRY.</div>`;
-            }
-        }
-
-        function toggleSelectForBurn(cardElement, id) {
-            const positionIdx = selectedNftsToBurn.indexOf(id);
-            if (positionIdx > -1) {
-                selectedNftsToBurn.splice(positionIdx, 1);
-                cardElement.classList.remove("selected");
-            } else {
-                selectedNftsToBurn.push(id);
-                cardElement.classList.add("selected");
-            }
-            document.getElementById("burnCountDisplay").innerText = `Selected: ${selectedNftsToBurn.length}`;
-        }
-
         // --- Web3 Connection Management (Multi-Wallet Extension Support Setup) ---
         async function handleWalletAction() {
             if (userWalletAddress) {
@@ -790,9 +754,6 @@
 
                 document.getElementById("walletBtn").innerText = `${userWalletAddress.substring(0, 6)}...${userWalletAddress.substring(38)}`;
                 synchronizeLiveChainData();
-                if (document.getElementById("burnTab").classList.contains("active")) {
-                    loadUserOwnedNftsForBurning();
-                }
             } catch (err) {
                 console.error("Wallet connection initialization encountered error:", err);
             }
@@ -803,8 +764,7 @@
             contractWithSigner = null;
             userWalletAddress = null;
             document.getElementById("walletBtn").innerText = "Connect Wallet";
-            document.getElementById("burnGallery").innerHTML = "";
-            document.getElementById("burnCountDisplay").innerText = "Selected: 0";
+            document.getElementById("burnTokenIds").value = "";
             document.getElementById("eligibilityResult").style.display = "none";
             synchronizeLiveChainData();
         }
@@ -854,27 +814,50 @@
             }
         }
 
+        // --- NEW UPDATED BURN SYSTEM (By Input TokenID) ---
         async function executeBurn() {
-            if (!contractWithSigner || selectedNftsToBurn.length === 0) return;
+            if (!contractWithSigner) {
+                alert("PLEASE CONNECT YOUR WALLET FIRST.");
+                await initiateWalletConnection();
+                return;
+            }
+
+            const inputVal = document.getElementById("burnTokenIds").value.trim();
+            if (!inputVal) {
+                alert("PLEASE ENTER AT LEAST ONE VALID TOKEN ID.");
+                return;
+            }
+
+            // Parse token IDs from inputs (handles commas and whitespace)
+            const tokenIdsToBurn = inputVal.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+
+            if (tokenIdsToBurn.length === 0) {
+                alert("COULD NOT PARSE ANY VALID TOKEN ID. PLEASE CHECK YOUR INPUT.");
+                return;
+            }
 
             try {
-                for (let i = 0; i < selectedNftsToBurn.length; i++) {
-                    const tokenId = selectedNftsToBurn[i];
-                    // Updated to match official smart contract parameters: burn(tokenId, reason)
-                    const txResponse = await contractWithSigner.burn(tokenId, "Glowrift Custom Burn");
+                let successCount = 0;
+                for (let i = 0; i < tokenIdsToBurn.length; i++) {
+                    const tokenId = tokenIdsToBurn[i];
+                    
+                    // Matching burn(tokenId) function signature from current ABI
+                    const txResponse = await contractWithSigner.burn(tokenId);
                     await txResponse.wait();
                     
                     updateNftStateInStorage(tokenId, "burned");
                     
                     let currentBurnCount = parseInt(localStorage.getItem("local_burned_count"));
                     localStorage.setItem("local_burned_count", (currentBurnCount + 1).toString());
+                    successCount++;
                 }
 
-                alert("ASSETS SUCCESSFULLY BURNED ON-CHAIN!");
-                loadUserOwnedNftsForBurning();
+                alert(`SUCCESSFULLY BURNED ${successCount} ASSET(S) ON-CHAIN!`);
+                document.getElementById("burnTokenIds").value = ""; // Clear input after successful burn
                 synchronizeLiveChainData();
             } catch (err) {
                 console.error("Burn transaction execution encountered rejection:", err);
+                alert("TRANSACTION REVERTED OR REJECTED. PLEASE CHECK IF YOU OWN THE TOKEN ID(S).");
             }
         }
 
