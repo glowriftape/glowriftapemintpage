@@ -428,8 +428,8 @@
     </main>
 
     <footer>
-        <a href="https://x.com/GlowriftApes" target="_blank">X</a>
-        <a id="openseaLink" href="https://opensea.io/collection/glowriftapes" target="_blank">OPENSEA</a>
+        <a href="https://x.com/glowriftape" target="_blank">X</a>
+        <a id="openseaLink" href="https://opensea.io/assets/ethereum/0xa2cf95f9dba1c9dc4f8a936fd0cd07c31cee4002" target="_blank">OPENSEA</a>
         <a id="etherscanLink" href="https://etherscan.io/address/0xa2cf95f9dba1c9dc4f8a936fd0cd07c31cee4002" target="_blank">ETHERSCAN</a>
     </footer>
 
@@ -440,7 +440,6 @@
         const TOTAL_COLLECTION_SIZE = 10000;
         const GITHUB_IMG_BASE = "https://raw.githubusercontent.com/glowriftape/glowriftapeimage/main/images/";
 
-        // Standard ERC721A / Ownership Methods Derived Perfectly From Provided ABI Specification
         const CONTRACT_ABI = [
             "function mint(uint256 quantity) external payable",
             "function burn(uint256 tokenId) external",
@@ -460,17 +459,11 @@
 
         // --- Initialization and LocalStorage Sync ---
         window.addEventListener('load', async () => {
-            configureFooterLinks();
             initializeLocalStateData();
             renderGalleryGrids();
             await synchronizeLiveChainData();
             setupLiveEventListener();
         });
-
-        function configureFooterLinks() {
-            document.getElementById("openseaLink").href = `https://opensea.io/collection/glowriftapes`;
-            document.getElementById("etherscanLink").href = `https://etherscan.io/address/${CONTRACT_ADDRESS}`;
-        }
 
         function initializeLocalStateData() {
             if (!localStorage.getItem("nft_mint_states")) {
@@ -633,7 +626,7 @@
             }
         }
 
-        // --- Optimized ERC721A Ownership Scanning & Dynamic Selection Mechanics ---
+        // --- Rock-Solid On-Chain Event Logs Scraper Mechanics ---
         async function loadUserOwnedNftsForBurning() {
             const burnGallery = document.getElementById("burnGallery");
             burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ffff00;">SCANNING ON-CHAIN OWNERSHIP DATA...</div>`;
@@ -648,21 +641,29 @@
             try {
                 const rpcProvider = new ethers.JsonRpcProvider(ALCHEMY_URL);
                 const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
-                
-                const supply = await readContract.totalSupply();
-                const currentTotalSupply = Number(supply);
-                
+
+                // Fetch Transfer logs where the current user is the recipient ('to')
+                const filterToUser = readContract.filters.Transfer(null, userWalletAddress);
+                const incomingLogs = await readContract.queryFilter(filterToUser);
+
+                let suspectedTokenIds = new Set();
+                incomingLogs.forEach(log => {
+                    if (log.args && log.args.tokenId) {
+                        suspectedTokenIds.add(Number(log.args.tokenId));
+                    }
+                });
+
                 let ownedIds = [];
-                
-                // Scan minted tokens asynchronously for exact ownership matching
-                for (let i = 0; i < currentTotalSupply; i++) {
+                // Instantly double-check absolute current ownership for targeted token IDs only
+                const targetIds = Array.from(suspectedTokenIds);
+                for (let id of targetIds) {
                     try {
-                        let tokenOwner = await readContract.ownerOf(i);
-                        if (tokenOwner.toLowerCase() === userWalletAddress.toLowerCase()) {
-                            ownedIds.push(i);
+                        const currentOwner = await readContract.ownerOf(id);
+                        if (currentOwner.toLowerCase() === userWalletAddress.toLowerCase()) {
+                            ownedIds.push(id);
                         }
                     } catch (e) {
-                        // Skip burned or nonexistent tokens seamlessly
+                        // Suppress burnt or non-existent tokens cleanly
                     }
                 }
 
@@ -672,7 +673,7 @@
                 }
 
                 burnGallery.innerHTML = "";
-                ownedIds.forEach(id => {
+                ownedIds.sort((a, b) => a - b).forEach(id => {
                     const card = document.createElement("div");
                     card.className = "nft-card";
                     
@@ -686,8 +687,8 @@
                 });
 
             } catch (err) {
-                console.error("Ownership read evaluation failed:", err);
-                burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ff0000;">ERROR SCANNING ASSETS. TRY AGAIN.</div>`;
+                console.error("On-chain log scraping architecture failed:", err);
+                burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ff0000;">ERROR FETCHING ASSETS FROM LOGS. PLEASE RETRY.</div>`;
             }
         }
 
@@ -812,7 +813,6 @@
             if (!contractWithSigner || selectedNftsToBurn.length === 0) return;
 
             try {
-                // Iterates through selected token IDs and executes individual explicit burns sequentially
                 for (let i = 0; i < selectedNftsToBurn.length; i++) {
                     const tokenId = selectedNftsToBurn[i];
                     const txResponse = await contractWithSigner.burn(tokenId);
@@ -842,7 +842,6 @@
             document.getElementById("eligibilityResult").style.display = "none";
             document.getElementById("loadingView").style.display = "block";
 
-            // Strict secure processing window interface loader simulation running exactly 3 seconds
             setTimeout(() => {
                 document.getElementById("loadingView").style.display = "none";
                 const totalBurnedCount = parseInt(localStorage.getItem("local_burned_count"));
