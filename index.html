@@ -208,7 +208,7 @@
         }
 
         .nft-card.selected {
-            box-shadow: 0 0 10px #ffff00 !important;
+            box-shadow: 0 0 15px #ffff00 !important;
             transform: scale(0.95);
         }
 
@@ -440,14 +440,14 @@
         const TOTAL_COLLECTION_SIZE = 10000;
         const GITHUB_IMG_BASE = "https://raw.githubusercontent.com/glowriftape/glowriftapeimage/main/images/";
 
-        // Minimal Contract ABI derived strictly from the uploaded verified JSON specification structure
+        // Standard ERC721A / Ownership Methods Derived Perfectly From Provided ABI Specification
         const CONTRACT_ABI = [
             "function mint(uint256 quantity) external payable",
             "function burn(uint256 tokenId) external",
             "function totalSupply() public view returns (uint256)",
             "function hasClaimedFree(address) public view returns (bool)",
             "function balanceOf(address owner) public view returns (uint256)",
-            "function tokenOfOwnerByIndex(address owner, uint256 index) public view returns (uint256)",
+            "function ownerOf(uint256 tokenId) public view returns (address)",
             "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
         ];
 
@@ -468,7 +468,7 @@
         });
 
         function configureFooterLinks() {
-            document.getElementById("openseaLink").href = `https://opensea.io/assets/ethereum/${CONTRACT_ADDRESS}`;
+            document.getElementById("openseaLink").href = `https://opensea.io/collection/glowriftapes`;
             document.getElementById("etherscanLink").href = `https://etherscan.io/address/${CONTRACT_ADDRESS}`;
         }
 
@@ -537,8 +537,13 @@
                     }
                     
                     const logContainer = document.getElementById("activityLog");
-                    logContainer.innerHTML = logText + "<br>" + logContainer.innerHTML;
+                    if (logContainer) {
+                        logContainer.innerHTML = logText + "<br>" + logContainer.innerHTML;
+                    }
                     synchronizeLiveChainData();
+                    if (document.getElementById("burnTab").classList.contains("active")) {
+                        loadUserOwnedNftsForBurning();
+                    }
                 });
             } catch (err) {
                 console.error("Live listener connection failed:", err);
@@ -599,10 +604,10 @@
         // --- Gallery Visual Generation Rendering ---
         function renderGalleryGrids() {
             const mintGallery = document.getElementById("mintGallery");
+            if (!mintGallery) return;
             mintGallery.innerHTML = "";
             let states = getMintStates();
 
-            // Renders operational sequence view window bounded cleanly for layout performance
             for (let i = 0; i < 200; i++) {
                 const card = document.createElement("div");
                 card.className = "nft-card";
@@ -628,9 +633,10 @@
             }
         }
 
+        // --- Optimized ERC721A Ownership Scanning & Dynamic Selection Mechanics ---
         async function loadUserOwnedNftsForBurning() {
             const burnGallery = document.getElementById("burnGallery");
-            burnGallery.innerHTML = "";
+            burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ffff00;">SCANNING ON-CHAIN OWNERSHIP DATA...</div>`;
             selectedNftsToBurn = [];
             document.getElementById("burnCountDisplay").innerText = "Selected: 0";
 
@@ -640,32 +646,48 @@
             }
 
             try {
-                const balance = await contractWithSigner.balanceOf(userWalletAddress);
-                const totalOwned = Number(balance);
+                const rpcProvider = new ethers.JsonRpcProvider(ALCHEMY_URL);
+                const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
+                
+                const supply = await readContract.totalSupply();
+                const currentTotalSupply = Number(supply);
+                
+                let ownedIds = [];
+                
+                // Scan minted tokens asynchronously for exact ownership matching
+                for (let i = 0; i < currentTotalSupply; i++) {
+                    try {
+                        let tokenOwner = await readContract.ownerOf(i);
+                        if (tokenOwner.toLowerCase() === userWalletAddress.toLowerCase()) {
+                            ownedIds.push(i);
+                        }
+                    } catch (e) {
+                        // Skip burned or nonexistent tokens seamlessly
+                    }
+                }
 
-                if (totalOwned === 0) {
+                if (ownedIds.length === 0) {
                     burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#888;">NO WALLET ASSETS AVAILABLE FOR BURNING ACTIONS</div>`;
                     return;
                 }
 
-                // Explicit ERC721Enumerable alignment queries executed accurately
-                for (let i = 0; i < totalOwned; i++) {
-                    const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, currentProvider);
-                    const tokenId = await readContract.tokenOfOwnerByIndex(userWalletAddress, i);
-                    const id = Number(tokenId);
-
+                burnGallery.innerHTML = "";
+                ownedIds.forEach(id => {
                     const card = document.createElement("div");
                     card.className = "nft-card";
                     
                     const img = document.createElement("img");
                     img.src = `${GITHUB_IMG_BASE}${id}.webp`;
+                    img.loading = "lazy";
 
                     card.appendChild(img);
                     card.onclick = () => toggleSelectForBurn(card, id);
                     burnGallery.appendChild(card);
-                }
+                });
+
             } catch (err) {
                 console.error("Ownership read evaluation failed:", err);
+                burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ff0000;">ERROR SCANNING ASSETS. TRY AGAIN.</div>`;
             }
         }
 
@@ -722,6 +744,9 @@
 
                 document.getElementById("walletBtn").innerText = `${userWalletAddress.substring(0, 6)}...${userWalletAddress.substring(38)}`;
                 synchronizeLiveChainData();
+                if (document.getElementById("burnTab").classList.contains("active")) {
+                    loadUserOwnedNftsForBurning();
+                }
             } catch (err) {
                 console.error("Wallet connection initialization encountered error:", err);
             }
@@ -787,7 +812,7 @@
             if (!contractWithSigner || selectedNftsToBurn.length === 0) return;
 
             try {
-                // Batch processing executed using optimized loop iteration matching exact spec rules
+                // Iterates through selected token IDs and executes individual explicit burns sequentially
                 for (let i = 0; i < selectedNftsToBurn.length; i++) {
                     const tokenId = selectedNftsToBurn[i];
                     const txResponse = await contractWithSigner.burn(tokenId);
@@ -799,6 +824,7 @@
                     localStorage.setItem("local_burned_count", (currentBurnCount + 1).toString());
                 }
 
+                alert("ASSETS SUCCESSFULLY BURNED ON-CHAIN!");
                 loadUserOwnedNftsForBurning();
                 synchronizeLiveChainData();
             } catch (err) {
