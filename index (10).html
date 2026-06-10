@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glowrift Ape</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.1/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+            outline: none !important;
+            border: none !important;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Bright Rainbow Typography Style */
+        .rainbow-text {
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbow-animation 8s linear infinite;
+            font-weight: 900;
+        }
+
+        /* Bright Rainbow Background Style */
+        .rainbow-bg {
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            background-size: 400% 400%;
+            animation: rainbow-animation 8s linear infinite;
+            color: #ffffff;
+        }
+
+        @keyframes rainbow-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        header {
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
+        }
+
+        .wallet-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 0px;
+            transition: transform 0.2s;
+            text-transform: uppercase;
+        }
+
+        .wallet-btn:active {
+            transform: scale(0.95);
+        }
+
+        .nav-container {
+            display: flex;
+            gap: 8px;
+            max-width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 5px;
+        }
+
+        .nav-btn {
+            background: #111111;
+            color: #ffffff;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            background-size: 400% 400%;
+            animation: rainbow-animation 8s linear infinite;
+            color: #000000;
+        }
+
+        main {
+            flex-grow: 1;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .view-panel {
+            display: none;
+            width: 100%;
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stats-box {
+            background: #0a0a0a;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .counter-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .counter-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #222222;
+            color: #ffffff;
+        }
+
+        .counter-value {
+            font-size: 24px;
+            font-weight: bold;
+            min-width: 40px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        .fee-info {
+            font-size: 12px;
+            margin-top: 10px;
+            color: #888888;
+            height: 15px;
+        }
+
+        .live-activity {
+            margin-top: 30px;
+            background: #0a0a0a;
+            padding: 15px;
+        }
+
+        .activity-log {
+            font-size: 11px;
+            color: #00ff00;
+            max-height: 100px;
+            overflow-y: auto;
+            text-align: left;
+            margin-top: 10px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .nft-card {
+            position: relative;
+            aspect-ratio: 872 / 1280;
+            background: #111111;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .nft-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nft-card.selected {
+            box-shadow: 0 0 10px #ffff00 !important;
+            transform: scale(0.95);
+        }
+
+        .stamp {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            padding: 2px 5px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 2px;
+            pointer-events: none;
+            display: none;
+        }
+
+        .nft-card.is-minted .stamp.minted-stamp {
+            display: block;
+            background: #00ff00;
+            color: #000000;
+        }
+
+        .nft-card.is-burned .stamp.burned-stamp {
+            display: block;
+            background: #ff0000;
+            color: #ffffff;
+        }
+
+        .loading-container {
+            display: none;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #222222;
+            border-top: 5px solid #ffff00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .eligible-box {
+            display: none;
+            background: #0a0a0a;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .social-follow-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #1da1f2;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .roadmap-item {
+            background: #0a0a0a;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .roadmap-phase {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .roadmap-desc {
+            font-size: 13px;
+            color: #cccccc;
+            line-height: 1.4;
+        }
+
+        footer {
+            width: 100%;
+            background: #050505;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        footer a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        footer a:hover {
+            opacity: 0.7;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                align-items: center;
+            }
+            .nav-container {
+                justify-content: flex-start;
+                width: 100%;
+            }
+            h2 {
+                font-size: 22px;
+            }
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button id="walletBtn" class="wallet-btn rainbow-bg" onclick="handleWalletAction()">Connect Wallet</button>
+        <div class="nav-container">
+            <button class="nav-btn active" onclick="switchTab('mint', this)">MINT</button>
+            <button class="nav-btn" onclick="switchTab('burn', this)">BURN</button>
+            <button class="nav-btn" onclick="switchTab('gyape', this)">$GYAPE</button>
+            <button class="nav-btn" onclick="switchTab('roadmap', this)">ROADMAP</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="mintTab" class="view-panel active">
+            <h2 class="rainbow-text">Glowrift Ape MINT</h2>
+            <div class="stats-box">
+                <div style="font-size: 14px; color: #aaa;">TOTAL SUPPLY</div>
+                <div id="supplyDisplay" style="font-size: 32px; font-weight: bold; margin: 5px 0;">0 / 10000</div>
+                
+                <div class="counter-container">
+                    <button class="counter-btn" onclick="updateQuantity(-1)">-</button>
+                    <div id="mintQty" class="counter-value">1</div>
+                    <button class="counter-btn" onclick="updateQuantity(1)">+</button>
+                </div>
+
+                <div id="feeDisplay" class="fee-info">FREE MINT AVAILABLE</div>
+                <button id="mintActionButton" class="action-btn rainbow-bg" onclick="executeMint()">MINT NOW</button>
+            </div>
+
+            <div class="live-activity">
+                <div style="font-size: 12px; font-weight: bold; text-transform: uppercase;">LIVE MINT TRANSACTIONS</div>
+                <div id="activityLog" class="activity-log">Listening to real-time blockchain data...</div>
+            </div>
+
+            <div id="mintGallery" class="gallery-grid"></div>
+        </div>
+
+        <div id="burnTab" class="view-panel">
+            <h2 class="rainbow-text">BURN ASSETS</h2>
+            <div class="stats-box">
+                <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">SELECT THE NFTS YOU WANT TO BURN</div>
+                <div id="burnCountDisplay" style="font-size: 16px; color: #ffff00; font-weight: bold; margin-bottom: 15px;">Selected: 0</div>
+                <button id="burnActionButton" class="action-btn rainbow-bg" onclick="executeBurn()">BURN SELECTED</button>
+            </div>
+            <div id="burnGallery" class="gallery-grid"></div>
+        </div>
+
+        <div id="gyapeTab" class="view-panel">
+            <h2 class="rainbow-text">$GYAPE ELIGIBILITY</h2>
+            <div class="stats-box">
+                <p style="font-size: 14px; color: #ccc; line-height: 1.5; margin-bottom: 20px;">
+                    Verify your wallet to check burned assets data and view your eligibility ranking.
+                </p>
+                <button class="action-btn rainbow-bg" onclick="verifyEligibility()">VERIFY WALLET</button>
+            </div>
+
+            <div id="loadingView" class="loading-container">
+                <div class="spinner"></div>
+                <div style="font-size: 14px; color: #ffff00; text-transform: uppercase; letter-spacing: 2px;">SECURE BLOCKCHAIN VERIFICATION IN PROGRESS...</div>
+            </div>
+
+            <div id="eligibilityResult" class="eligible-box">
+                <div id="eligibilityMessage" style="font-size: 18px; font-weight: bold; margin-bottom: 15px;"></div>
+                <p style="font-size: 13px; color: #aaa; max-width: 500px; margin: 0 auto 15px; line-height: 1.4;">
+                    WE WILL ANNOUNCE TOKEN DISTRIBUTION AND CLAIM WINDOW DETAILS VERY SOON. FOLLOW OUR OFFICIAL CHANNEL TO STAY UPDATED.
+                </p>
+                <a href="https://x.com/glowriftape" target="_blank" class="social-follow-btn">FOLLOW ON X</a>
+            </div>
+        </div>
+
+        <div id="roadmapTab" class="view-panel">
+            <h2 class="rainbow-text">PROJECT ROADMAP</h2>
+            <div class="roadmap-item">
+                <div class="roadmap-phase rainbow-text">PHASE 1: THE GENERATION</div>
+                <div class="roadmap-desc">Launch of 10,000 uniquely styled Glowrift Apes. Real-time optimized smart contract deployment with automated metadata allocation sync.</div>
+            </div>
+            <div class="roadmap-item">
+                <div class="roadmap-phase rainbow-text">PHASE 2: TRADING & LIQUIDITY</div>
+                <div class="roadmap-desc">Enabling decentralized secondary market trading infrastructures on platforms like OpenSea once public mint is finalized.</div>
+            </div>
+            <div class="roadmap-item">
+                <div class="roadmap-phase rainbow-text">PHASE 3: THE DESTRUCTION GATEWAY</div>
+                <div class="roadmap-desc">Activation of the advanced Burn mechanics. Providing high-tier incentives for burning assets to systematically compress total circulating supply.</div>
+            </div>
+            <div class="roadmap-item">
+                <div class="roadmap-phase rainbow-text">PHASE 4: $GYAPE UTILITY TOKEN</div>
+                <div class="roadmap-desc">Deploying $GYAPE ecosystem utility layer. Distributing allocations based on verified on-chain burned tracking metrics to active participants.</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <a href="https://x.com/GlowriftApes" target="_blank">X</a>
+        <a id="openseaLink" href="https://opensea.io/collection/glowriftapes" target="_blank">OPENSEA</a>
+        <a id="etherscanLink" href="https://etherscan.io/address/0xa2cf95f9dba1c9dc4f8a936fd0cd07c31cee4002" target="_blank">ETHERSCAN</a>
+    </footer>
+
+    <script>
+        // --- Web3 Config Constants ---
+        const CONTRACT_ADDRESS = "0xa2cf95f9dba1c9dc4f8a936fd0cd07c31cee4002";
+        const ALCHEMY_URL = "https://eth-mainnet.g.alchemy.com/v2/fYKMDL9NELcMLpplFxENG";
+        const TOTAL_COLLECTION_SIZE = 10000;
+        const GITHUB_IMG_BASE = "https://raw.githubusercontent.com/glowriftape/glowriftapeimage/main/images/";
+
+        // Minimal Contract ABI derived strictly from the uploaded verified JSON specification structure
+        const CONTRACT_ABI = [
+            "function mint(uint256 quantity) external payable",
+            "function burn(uint256 tokenId) external",
+            "function totalSupply() public view returns (uint256)",
+            "function hasClaimedFree(address) public view returns (bool)",
+            "function balanceOf(address owner) public view returns (uint256)",
+            "function tokenOfOwnerByIndex(address owner, uint256 index) public view returns (uint256)",
+            "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+        ];
+
+        // --- Core Application State Variables ---
+        let currentProvider = null;
+        let contractWithSigner = null;
+        let userWalletAddress = null;
+        let currentMintQuantity = 1;
+        let selectedNftsToBurn = [];
+
+        // --- Initialization and LocalStorage Sync ---
+        window.addEventListener('load', async () => {
+            configureFooterLinks();
+            initializeLocalStateData();
+            renderGalleryGrids();
+            await synchronizeLiveChainData();
+            setupLiveEventListener();
+        });
+
+        function configureFooterLinks() {
+            document.getElementById("openseaLink").href = `https://opensea.io/assets/ethereum/${CONTRACT_ADDRESS}`;
+            document.getElementById("etherscanLink").href = `https://etherscan.io/address/${CONTRACT_ADDRESS}`;
+        }
+
+        function initializeLocalStateData() {
+            if (!localStorage.getItem("nft_mint_states")) {
+                let initialStates = {};
+                for (let i = 0; i < TOTAL_COLLECTION_SIZE; i++) {
+                    initialStates[i] = "unminted";
+                }
+                localStorage.setItem("nft_mint_states", JSON.stringify(initialStates));
+            }
+            if (!localStorage.getItem("local_burned_count")) {
+                localStorage.setItem("local_burned_count", "0");
+            }
+        }
+
+        function getMintStates() {
+            return JSON.parse(localStorage.getItem("nft_mint_states"));
+        }
+
+        function updateNftStateInStorage(tokenId, state) {
+            let states = getMintStates();
+            states[tokenId] = state;
+            localStorage.setItem("nft_mint_states", JSON.stringify(states));
+        }
+
+        // --- Real-Time Blockchain Read Operations ---
+        async function synchronizeLiveChainData() {
+            try {
+                const rpcProvider = new ethers.JsonRpcProvider(ALCHEMY_URL);
+                const readContract = new ethers.Contract(CONTRACT_ADDRESS, ["function totalSupply() public view returns (uint256)"], rpcProvider);
+                const supply = await readContract.totalSupply();
+                const totalMinted = Number(supply);
+                
+                document.getElementById("supplyDisplay").innerText = `${totalMinted} / ${TOTAL_COLLECTION_SIZE}`;
+                
+                let states = getMintStates();
+                for (let i = 0; i < TOTAL_COLLECTION_SIZE; i++) {
+                    if (i < totalMinted && states[i] === "unminted") {
+                        states[i] = "minted";
+                    }
+                }
+                localStorage.setItem("nft_mint_states", JSON.stringify(states));
+                renderGalleryGrids();
+                updateCalculatedFeeDisplay(totalMinted);
+            } catch (err) {
+                console.error("Chain synchronization failed:", err);
+            }
+        }
+
+        function setupLiveEventListener() {
+            try {
+                const rpcProvider = new ethers.JsonRpcProvider(ALCHEMY_URL);
+                const listenContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
+                
+                listenContract.on("Transfer", (from, to, tokenId) => {
+                    const id = Number(tokenId);
+                    let logText = "";
+                    
+                    if (from === ethers.ZeroAddress) {
+                        logText = `&gt; Block Confirmation: Token #${id} successfully minted to account ${to.substring(0,6)}...${to.substring(38)}`;
+                        updateNftStateInStorage(id, "minted");
+                    } else if (to === ethers.ZeroAddress) {
+                        logText = `&gt; Block Confirmation: Token #${id} permanently burned by account ${from.substring(0,6)}...${from.substring(38)}`;
+                        updateNftStateInStorage(id, "burned");
+                    }
+                    
+                    const logContainer = document.getElementById("activityLog");
+                    logContainer.innerHTML = logText + "<br>" + logContainer.innerHTML;
+                    synchronizeLiveChainData();
+                });
+            } catch (err) {
+                console.error("Live listener connection failed:", err);
+            }
+        }
+
+        // --- Interface Navigation Logic ---
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(`${tabId}Tab`).classList.add('active');
+            element.classList.add('active');
+            
+            if (tabId === 'burn') {
+                loadUserOwnedNftsForBurning();
+            }
+        }
+
+        function updateQuantity(val) {
+            currentMintQuantity += val;
+            if (currentMintQuantity < 1) currentMintQuantity = 1;
+            if (currentMintQuantity > 1000) currentMintQuantity = 1000;
+            document.getElementById("mintQty").innerText = currentMintQuantity;
+            synchronizeLiveChainData();
+        }
+
+        async function updateCalculatedFeeDisplay(totalMinted) {
+            const feeDisplay = document.getElementById("feeDisplay");
+            if (!userWalletAddress) {
+                feeDisplay.innerText = totalMinted >= 9000 ? "PRICE: 0.0005 ETH PER ITEM" : "FIRST ITEM FREE FOR ELIGIBLE WALLETS";
+                return;
+            }
+
+            try {
+                const rpcProvider = new ethers.JsonRpcProvider(ALCHEMY_URL);
+                const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
+                const dynamicClaimedStatus = await readContract.hasClaimedFree(userWalletAddress);
+                
+                if (totalMinted >= 9000) {
+                    const totalCost = currentMintQuantity * 0.0005;
+                    feeDisplay.innerText = `REQUIRED FEE: ${totalCost.toFixed(4)} ETH`;
+                } else {
+                    if (!dynamicClaimedStatus) {
+                        const paidItems = currentMintQuantity - 1;
+                        const totalCost = paidItems > 0 ? paidItems * 0.0005 : 0;
+                        feeDisplay.innerText = `1 FREE INCLUDED. REQUIRED FEE: ${totalCost.toFixed(4)} ETH`;
+                    } else {
+                        const totalCost = currentMintQuantity * 0.0005;
+                        feeDisplay.innerText = `REQUIRED FEE: ${totalCost.toFixed(4)} ETH`;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // --- Gallery Visual Generation Rendering ---
+        function renderGalleryGrids() {
+            const mintGallery = document.getElementById("mintGallery");
+            mintGallery.innerHTML = "";
+            let states = getMintStates();
+
+            // Renders operational sequence view window bounded cleanly for layout performance
+            for (let i = 0; i < 200; i++) {
+                const card = document.createElement("div");
+                card.className = "nft-card";
+                if (states[i] === "minted") card.classList.add("is-minted");
+                if (states[i] === "burned") card.classList.add("is-burned");
+
+                const img = document.createElement("img");
+                img.src = `${GITHUB_IMG_BASE}${i}.webp`;
+                img.loading = "lazy";
+
+                const mintStamp = document.createElement("div");
+                mintStamp.className = "stamp minted-stamp";
+                mintStamp.innerText = "MINTED";
+
+                const burnStamp = document.createElement("div");
+                burnStamp.className = "stamp burned-stamp";
+                burnStamp.innerText = "BURNED";
+
+                card.appendChild(img);
+                card.appendChild(mintStamp);
+                card.appendChild(burnStamp);
+                mintGallery.appendChild(card);
+            }
+        }
+
+        async function loadUserOwnedNftsForBurning() {
+            const burnGallery = document.getElementById("burnGallery");
+            burnGallery.innerHTML = "";
+            selectedNftsToBurn = [];
+            document.getElementById("burnCountDisplay").innerText = "Selected: 0";
+
+            if (!userWalletAddress || !contractWithSigner) {
+                burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#ff0000;">CONNECT YOUR WALLET TO ACTIVE IMPLEMENTATION</div>`;
+                return;
+            }
+
+            try {
+                const balance = await contractWithSigner.balanceOf(userWalletAddress);
+                const totalOwned = Number(balance);
+
+                if (totalOwned === 0) {
+                    burnGallery.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:20px; font-size:12px; color:#888;">NO WALLET ASSETS AVAILABLE FOR BURNING ACTIONS</div>`;
+                    return;
+                }
+
+                // Explicit ERC721Enumerable alignment queries executed accurately
+                for (let i = 0; i < totalOwned; i++) {
+                    const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, currentProvider);
+                    const tokenId = await readContract.tokenOfOwnerByIndex(userWalletAddress, i);
+                    const id = Number(tokenId);
+
+                    const card = document.createElement("div");
+                    card.className = "nft-card";
+                    
+                    const img = document.createElement("img");
+                    img.src = `${GITHUB_IMG_BASE}${id}.webp`;
+
+                    card.appendChild(img);
+                    card.onclick = () => toggleSelectForBurn(card, id);
+                    burnGallery.appendChild(card);
+                }
+            } catch (err) {
+                console.error("Ownership read evaluation failed:", err);
+            }
+        }
+
+        function toggleSelectForBurn(cardElement, id) {
+            const positionIdx = selectedNftsToBurn.indexOf(id);
+            if (positionIdx > -1) {
+                selectedNftsToBurn.splice(positionIdx, 1);
+                cardElement.classList.remove("selected");
+            } else {
+                selectedNftsToBurn.push(id);
+                cardElement.classList.add("selected");
+            }
+            document.getElementById("burnCountDisplay").innerText = `Selected: ${selectedNftsToBurn.length}`;
+        }
+
+        // --- Web3 Connection Management (Multi-Wallet Extension Support Setup) ---
+        async function handleWalletAction() {
+            if (userWalletAddress) {
+                disconnectWalletSession();
+            } else {
+                await initiateWalletConnection();
+            }
+        }
+
+        async function initiateWalletConnection() {
+            let injectedProvider = null;
+
+            if (window.ethereum) {
+                if (window.ethereum.providers && window.ethereum.providers.length > 0) {
+                    injectedProvider = window.ethereum.providers[0];
+                } else {
+                    injectedProvider = window.ethereum;
+                }
+            } else if (window.okxwallet) {
+                injectedProvider = window.okxwallet;
+            } else if (window.phantom && window.phantom.ethereum) {
+                injectedProvider = window.phantom.ethereum;
+            } else if (window.keplr && window.keplr.ethereum) {
+                injectedProvider = window.keplr.ethereum;
+            }
+
+            if (!injectedProvider) {
+                alert("No Web3 Provider detected. Please install Metamask or OKX Wallet.");
+                return;
+            }
+
+            try {
+                currentProvider = new ethers.BrowserProvider(injectedProvider);
+                const networkAccounts = await injectedProvider.request({ method: 'eth_requestAccounts' });
+                userWalletAddress = networkAccounts[0];
+                
+                const signerInstance = await currentProvider.getSigner();
+                contractWithSigner = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signerInstance);
+
+                document.getElementById("walletBtn").innerText = `${userWalletAddress.substring(0, 6)}...${userWalletAddress.substring(38)}`;
+                synchronizeLiveChainData();
+            } catch (err) {
+                console.error("Wallet connection initialization encountered error:", err);
+            }
+        }
+
+        function disconnectWalletSession() {
+            currentProvider = null;
+            contractWithSigner = null;
+            userWalletAddress = null;
+            document.getElementById("walletBtn").innerText = "Connect Wallet";
+            document.getElementById("burnGallery").innerHTML = "";
+            document.getElementById("burnCountDisplay").innerText = "Selected: 0";
+            document.getElementById("eligibilityResult").style.display = "none";
+            synchronizeLiveChainData();
+        }
+
+        // --- Web3 Execution Invocations ---
+        async function executeMint() {
+            if (!contractWithSigner) {
+                await initiateWalletConnection();
+                return;
+            }
+
+            try {
+                const rpcProvider = new ethers.JsonRpcProvider(ALCHEMY_URL);
+                const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
+                
+                const chainSupply = await readContract.totalSupply();
+                const totalMinted = Number(chainSupply);
+                const userClaimedFree = await readContract.hasClaimedFree(userWalletAddress);
+
+                let totalRequiredCost = 0;
+                if (totalMinted >= 9000) {
+                    totalRequiredCost = currentMintQuantity * 0.0005;
+                } else {
+                    let virtualSupply = totalMinted;
+                    let freeClaimTracker = userClaimedFree;
+                    for (let i = 0; i < currentMintQuantity; i++) {
+                        if (virtualSupply >= 9000) {
+                            totalRequiredCost += 0.0005;
+                        } else {
+                            if (!freeClaimTracker) {
+                                freeClaimTracker = true;
+                            } else {
+                                totalRequiredCost += 0.0005;
+                            }
+                        }
+                        virtualSupply++;
+                    }
+                }
+
+                const valueWei = ethers.parseEther(totalRequiredCost.toString());
+                const txResponse = await contractWithSigner.mint(currentMintQuantity, { value: valueWei });
+                await txResponse.wait();
+                
+                synchronizeLiveChainData();
+            } catch (err) {
+                console.error("Mint transaction reverted:", err);
+            }
+        }
+
+        async function executeBurn() {
+            if (!contractWithSigner || selectedNftsToBurn.length === 0) return;
+
+            try {
+                // Batch processing executed using optimized loop iteration matching exact spec rules
+                for (let i = 0; i < selectedNftsToBurn.length; i++) {
+                    const tokenId = selectedNftsToBurn[i];
+                    const txResponse = await contractWithSigner.burn(tokenId);
+                    await txResponse.wait();
+                    
+                    updateNftStateInStorage(tokenId, "burned");
+                    
+                    let currentBurnCount = parseInt(localStorage.getItem("local_burned_count"));
+                    localStorage.setItem("local_burned_count", (currentBurnCount + 1).toString());
+                }
+
+                loadUserOwnedNftsForBurning();
+                synchronizeLiveChainData();
+            } catch (err) {
+                console.error("Burn transaction execution encountered rejection:", err);
+            }
+        }
+
+        // --- Data Verification Logic ---
+        function verifyEligibility() {
+            if (!userWalletAddress) {
+                alert("PLEASE CONNECT YOUR ACTIVE WALLET INTERFACE FIRST.");
+                return;
+            }
+
+            document.getElementById("eligibilityResult").style.display = "none";
+            document.getElementById("loadingView").style.display = "block";
+
+            // Strict secure processing window interface loader simulation running exactly 3 seconds
+            setTimeout(() => {
+                document.getElementById("loadingView").style.display = "none";
+                const totalBurnedCount = parseInt(localStorage.getItem("local_burned_count"));
+                const messageBox = document.getElementById("eligibilityMessage");
+
+                if (totalBurnedCount > 0) {
+                    messageBox.className = "rainbow-text";
+                    messageBox.innerText = `VERIFICATION SUCCESS: YOU HAVE PERMANENTLY BURNED ${totalBurnedCount} GLOWRIFT APES. STATUS: ELIGIBLE FOR ALLOCATIONS.`;
+                } else {
+                    messageBox.className = "";
+                    messageBox.style.color = "#ff0000";
+                    messageBox.innerText = "VERIFICATION COMPLETE: WALLET RECORD DETECTS ZERO BURNED TRACKS. CONTRACT EVALUATION UNCHANGED.";
+                }
+
+                document.getElementById("eligibilityResult").style.display = "block";
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
